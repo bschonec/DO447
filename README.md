@@ -1,11 +1,15 @@
 # DO447
 Notes I've taken in order to study for Red Hat Ansible Best Practices
 
-
 I have not taken the EX447 exam.  I am bound by a non discloure agreement and cannot and will not answer any questions about any Red Hat Exam.  These are notes that I've taken while studying for the exam.
 
+# Chapter 1
 
+use "ansible_host" parameter if you want to 'rename' a host in an inventory file.
 
+# Setting up git:
+
+default push = simple
 
 Variables must start with an alpha.  Underscores are the only "punctuation" character allowed.  Numbers are allowed but not at beginning.
 
@@ -125,6 +129,11 @@ ansible-doc -t garbage -l  # shows all the types you can list
 ansible-doc -t lookup -l    # shows all the lookup plugins
 ansible-doc -t lookup list  # dos for list lookup
 
+## Creating users with password lookup
+
+user:
+  password: "{{ secret_password | password_hash('sha512') }}"
+
 
 find module.  Use 'files' return variable
 "{{ found_files |  map(attribute='path') | list }}" # from the previous 'find' module call
@@ -197,7 +206,8 @@ ansible -m setup localhost setup -a 'gather_subset=!all,network' | less
 Network address filters
 netmask = "192.168.0.0/255.255.255.0"
 
-{{ ipaddr  | ipaddr }}  # Reverse record
+{{ '10.2.1.3' | ipaddr }}   # returns the IP address and true equivalent
+
 {{ ipaddr  | ipaddr('prefix') }} # "24"
 {{ ipaddr  | ipaddr('net') }} # "192.168.0.1/24"
   
@@ -216,36 +226,25 @@ netmask = "192.168.0.0/255.255.255.0"
   max_fail_percentage works against the "serial" directive.
   
   
-  # Chapter 6:  Installing Ansible Tower 3.5
-  
-  Chapter 7: Creating and Managing Ansible Tower Users
-  Organization:  Logical collection of teams, projects and inventories.  All users must be in an organization.
-  
-  You need 'tower-cli' to manage users and teams effectively.  Run 'tower-cli config' to configure the tool.
-  
-  tower-cli role grant --user=daniel --target-team=Developers --type=admin
-  tower-cli user create --username=Brian --email=brian@lab.example.com --password=password123 .....
-  
-  Chapter 9:  Managing Projects and Launching Ansible Jobs
-  Chapter 10:  Constructing Advanced Job Workflows
-  Chapter 11:  Communicating with APIs Using Ansible
-  
-  ansible-doc uri  # search for 'api' and you'll have a near-perfect example.
-  
-  use https://tower.lab.example.com/api/v2/job_templates
-  
-  curl -X GET https://tower.lab.example.com/api/v2 -k -s | 
-  curl -X get --user admin:redhat <blah blah>
-  
-
-# Chapter 6
+# Chapter 6:  Installing Ansible Tower 3.5
 Job template requires at minimum, inventory, project (with a at least one playbook)
   optional:  credentials (ssh key, sudo password, etc)
   
   Job templates execute jobs.
   
   
+  
 # Chapter 7 Managing Access with Users and Teams
+  Organization:  Logical collection of teams, projects and inventories.  All users must be in an organization.
+  
+  You need 'tower-cli' to manage users and teams effectively.  Run 'tower-cli config' to configure the tool.
+
+  tower-cli config verify_ssl false
+  tower-cli config password redhat
+  tower-cli config host tower.example.com
+  
+  tower-cli role grant --user=daniel --target-team=Developers --type=admin
+  tower-cli user create --username=Brian --email=brian@lab.example.com --password=password123 .....
 
 
 job templates
@@ -268,22 +267,31 @@ When an inventory is first created, it is only accessible by users who have the 
 Admin, or Auditor roles for the organization to which the inventory belongs. All other access
 must be specifically configured.
 
+SCM Update Options:
+  CLEAN: Local modifications purged
+  DELETE ON UPDATE: local repo directory is deleted and recloned
+  UPDATE REVISION ON LAUNCH: "git pull"
 
 ## Creating machine credentials for access to inventory hosts
 
 
 
-# Managing project and launching ansible jobs
-
+# Chapter 9:  Managing Projects and Launching Ansible Jobs
 
 /var/lib/awx/projects is where PROJECTs clone git code into.
 
+# Chapter 10:  Constructing Advanced Job Workflows
 
-# Chapter 10
-
-Chapter 11
-
-API:  curl -X GET https://tower.lab.example.om/api/v2/activity_strem -key
+# Chapter 11:  Communicating with APIs Using Ansible
+API:  curl -X GET https://tower.lab.example.om/api/v2/activity_stream -key
+  
+  ansible-doc uri  # search for 'api' and you'll have a near-perfect example.
+  
+  use https://tower.lab.example.com/api/v2/job_templates
+  
+  curl -X GET https://tower.lab.example.com/api/v2 -k -s | 
+  curl -X get --user admin:redhat <blah blah>
+  
 
 
 # Chapter 12:  Managing Advanced Inventories
@@ -301,9 +309,11 @@ awx-manage
 awx-manage inventory_import --source=inventory/ --inventory-name="My Tower Inventory"
 
 
+PUT is used to modify existing or create NEW properties
+POST is used to run jobs,templates, or to modify EXISTING stuff.
 
 
-  awx-manage inventory_import --source=inventory/ --inventory-name="My Tower Inventory" --overwrite
+  awx-manage inventory_import --source=/path/to/inventory/ --inventory-name="My Tower Inventory" --overwrite
   
   Inventories can be synced from a GIT repository.
   
@@ -313,8 +323,18 @@ awx-manage inventory_import --source=inventory/ --inventory-name="My Tower Inven
   gather_facts: true (and really nothing else) periodically or from a schedule.
   
   Smart host filter must have FACT:VALUE  (ansible_facts.ansible_distribution:RedHat)
-  
-  # Chapter 14
+
+GIT based inventories must have their PROJECT and then the Inventory/Sources objects *refreshed* before the inventory in the HOSTS tab is refreshed.
+
+ 
+Dynamic inventory scripts must accept --list and --host options and return the appropriate inventory.
+
+ 
+# Chapter 14
+
+
+Ensure to select the *Ansible Tower* section of the documentation and the Installation section for this chapter.
+
   supervisorctl status
   awx-manage changepassword admin 
   awx-manage createsuperuser  
@@ -336,3 +356,9 @@ awx-manage inventory_import --source=inventory/ --inventory-name="My Tower Inven
   
  
  awx-manage 
+
+
+# Comprehensive review
+
+the dynamic inventory python scripts don't work out of the box.  You must install python3-ldap and run the "lab advinventory-dynamic start" script to get IDM installed.
+
